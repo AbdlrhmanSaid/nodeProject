@@ -7,7 +7,7 @@ app.use(express.json());
 
 const db_password = encodeURIComponent("#12Bode34#");
 
-const port = 3000 || process.env.PORT;
+const port = process.env.PORT || 3000;
 
 mongoose
   .connect(
