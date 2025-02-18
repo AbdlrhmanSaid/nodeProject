@@ -88,7 +88,6 @@ app.patch("/updateUser/:id", async (req, res) => {
   }
 });
 
-// delete user
 app.delete("/deleteUser/:id", async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
