@@ -18,11 +18,13 @@ app.use(
   })
 );
 
+// بيانات الاتصال بقاعدة البيانات
 const db_user = "Abdelrhman";
 const db_password = encodeURIComponent("#12Bode34#");
 const db_name = "university";
 const port = process.env.PORT || 3000;
 
+// اتصال بقاعدة البيانات
 mongoose
   .connect(
     `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority&appName=Cluster0`
@@ -43,9 +45,9 @@ app.get("/", (req, res) => {
 app.get("/getUsers", async (req, res) => {
   try {
     const users = await User.find().select("-password");
-    res.json(users);
+    res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -54,9 +56,9 @@ app.get("/getUsers/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
+    res.status(200).json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -77,26 +79,36 @@ app.post("/postUser", async (req, res) => {
     await user.save();
     res.status(201).json({ message: "User added successfully", user });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
 // 📌 تحديث بيانات المستخدم
 app.patch("/updateUser/:id", async (req, res) => {
   try {
+    const { email, username, password } = req.body;
+
     if (Object.keys(req.body).length === 0) {
-      return res
-        .status(400)
-        .json({ message: "At least one field must be updated" });
+      return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    if (email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser && existingUser._id.toString() !== req.params.id) {
+        return res
+          .status(400)
+          .json({ message: "البريد الإلكتروني مستخدم بالفعل" });
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { email, username, password },
+      { new: true, runValidators: true }
+    );
 
     if (!updatedUser)
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "المستخدم غير موجود" });
 
     res.json(updatedUser);
   } catch (err) {
@@ -109,9 +121,10 @@ app.delete("/deleteUser/:id", async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ message: "User deleted successfully", user });
+
+    res.status(200).json({ message: "User deleted successfully", user });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -120,9 +133,9 @@ app.delete("/deleteUser/:id", async (req, res) => {
 app.get("/getProducts", async (req, res) => {
   try {
     const products = await Product.find();
-    res.json(products);
+    res.status(200).json(products);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -131,9 +144,10 @@ app.get("/getProducts/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+
+    res.status(200).json(product);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -161,38 +175,33 @@ app.post("/postProduct", async (req, res) => {
     await product.save();
     res.status(201).json({ message: "Product added successfully", product });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
 // 📌 تحديث منتج
 app.patch("/updateProduct/:id", async (req, res) => {
   try {
+    const { title, price, category, image } = req.body;
+
     if (Object.keys(req.body).length === 0) {
-      return res
-        .status(400)
-        .json({ message: "At least one field must be updated" });
+      return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
     }
 
-    if (
-      req.body.price &&
-      (typeof req.body.price !== "number" || req.body.price <= 0)
-    ) {
+    if (price && (typeof price !== "number" || price <= 0)) {
       return res
         .status(400)
-        .json({ message: "Price must be a positive number" });
+        .json({ message: "يجب أن يكون السعر رقمًا موجبًا" });
     }
+
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
+      { title, price, category, image },
+      { new: true, runValidators: true }
     );
 
     if (!updatedProduct)
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "المنتج غير موجود" });
 
     res.json(updatedProduct);
   } catch (err) {
@@ -205,8 +214,9 @@ app.delete("/deleteProduct/:id", async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json({ message: "Product deleted successfully", product });
+
+    res.status(200).json({ message: "Product deleted successfully", product });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
