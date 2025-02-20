@@ -1,6 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const cors = require("cors");
+
+// استيراد الموديلات
 const User = require("./model/Users");
 const Product = require("./model/Products");
 
@@ -8,15 +11,22 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "DELETE", "PUT", "PATCH"],
+  })
+);
 
-const db_user = process.env.DB_USER;
-const db_password = encodeURIComponent("#12Bode34#");
+const db_user = encodeURIComponent(process.env.DB_USER);
+const db_password = encodeURIComponent(process.env.DB_PASSWORD);
 const db_name = process.env.DB_NAME;
 const port = process.env.PORT || 3000;
 
+// الاتصال بقاعدة البيانات
 mongoose
   .connect(
-    `mongodb+srv://Abdelrhman:${db_password}@cluster0.9fimd.mongodb.net/university?retryWrites=true&w=majority&appName=Cluster0`
+    `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority&appName=Cluster0`
   )
   .then(() => {
     console.log("✅ Connected to MongoDB");
@@ -201,9 +211,3 @@ app.delete("/deleteProduct/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "DELETE", "PUT"]
-}));
