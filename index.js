@@ -201,3 +201,9 @@ app.delete("/deleteProduct/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "DELETE", "PUT"]
+}));
