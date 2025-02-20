@@ -18,12 +18,11 @@ app.use(
   })
 );
 
-const db_user = encodeURIComponent(process.env.DB_USER);
-const db_password = encodeURIComponent(process.env.DB_PASSWORD);
-const db_name = process.env.DB_NAME;
+const db_user = "Abdelrhman";
+const db_password = encodeURIComponent("#12Bode34#");
+const db_name = "university";
 const port = process.env.PORT || 3000;
 
-// الاتصال بقاعدة البيانات
 mongoose
   .connect(
     `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority&appName=Cluster0`
