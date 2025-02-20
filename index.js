@@ -86,27 +86,38 @@ app.post("/postUser", async (req, res) => {
 // 📌 تحديث بيانات المستخدم
 app.patch("/updateUser/:id", async (req, res) => {
   try {
-    const { email, username, password } = req.body;
-
+    const { email, username, password, oldPassword } = req.body;
     if (Object.keys(req.body).length === 0) {
       return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
     }
 
-    if (email) {
-      const existingUser = await User.findOne({ email: email.toLowerCase() });
-      if (existingUser && existingUser._id.toString() !== req.params.id) {
+    // إذا كان المستخدم يحاول تغيير كلمة المرور، يجب التأكد من تقديم كلمة المرور القديمة\n
+    if (password) {
+      if (!oldPassword) {
         return res
           .status(400)
-          .json({ message: "البريد الإلكتروني مستخدم بالفعل" });
+          .json({ message: "يجب تقديم كلمة المرور القديمة" });
       }
+      // إيجاد المستخدم مع جلب حقل كلمة المرور (يفترض أن كلمة المرور مخفية بشكل افتراضي)\n
+      const user = await User.findById(req.params.id).select("+password");
+      if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+      // نفترض وجود دالة على نموذج المستخدم للمقارنة بين كلمات المرور\n
+      const isMatch = await user.comparePassword(oldPassword);
+      if (!isMatch)
+        return res
+          .status(400)
+          .json({ message: "كلمة المرور القديمة غير صحيحة" });
     }
+
+    const updateData = { email, username };
+    if (password) updateData.password = password;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { email, username, password },
+      updateData,
       { new: true, runValidators: true }
     );
-
     if (!updatedUser)
       return res.status(404).json({ message: "المستخدم غير موجود" });
 
