@@ -145,7 +145,7 @@ app.delete("/deleteUser/:id", async (req, res) => {
 
 // ==================== 🛒 إدارة المنتجات ====================
 // 📌 استرجاع جميع المنتجات
-app.get("/getProducts", async (req, res) => {
+app.get("/getProducts", async (res) => {
   try {
     const products = await Product.find();
     res.status(200).json(products);
@@ -169,8 +169,9 @@ app.get("/getProducts/:id", async (req, res) => {
 // 📌 إضافة منتج جديد
 app.post("/postProduct", async (req, res) => {
   try {
-    const { title, price, category, image } = req.body;
+    const { title, price, category, image, quantity } = req.body;
 
+    // التحقق من الحقول الأساسية، ولا نقوم بالتحقق من quantity هنا لأنه سيتم تعيينها افتراضيًا في حالة عدم إرسالها
     if (!title || !price || !category || !image) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -181,12 +182,27 @@ app.post("/postProduct", async (req, res) => {
         .json({ message: "Price must be a positive number" });
     }
 
+    // البحث عن منتج موجود بنفس العنوان
     const existingProduct = await Product.findOne({ title });
     if (existingProduct) {
-      return res.status(400).json({ message: "Title is already registered" });
+      // زيادة الكمية بمقدار 1
+      existingProduct.quantity = (existingProduct.quantity || 0) + 1;
+      await existingProduct.save();
+      return res.status(200).json({
+        message: "Product already exists. Quantity increased.",
+        product: existingProduct,
+      });
     }
 
-    const product = new Product({ title, price, category, image });
+    // إذا كان المنتج جديدًا، يتم تعيين الكمية المرسلة أو افتراضيًا 1
+    const newQuantity = quantity !== undefined ? quantity : 1;
+    const product = new Product({
+      title,
+      price,
+      category,
+      image,
+      quantity: newQuantity,
+    });
     await product.save();
     res.status(201).json({ message: "Product added successfully", product });
   } catch (err) {
@@ -225,13 +241,37 @@ app.patch("/updateProduct/:id", async (req, res) => {
 });
 
 // 📌 حذف منتج
-app.delete("/deleteProduct/:id", async (req, res) => {
+app.patch("/updateProduct/:id", async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    const { title, price, category, image, quantity } = req.body;
 
-    res.status(200).json({ message: "Product deleted successfully", product });
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
+    }
+
+    if (price && (typeof price !== "number" || price <= 0)) {
+      return res
+        .status(400)
+        .json({ message: "يجب أن يكون السعر رقمًا موجبًا" });
+    }
+
+    // بناء كائن البيانات المحدثة مع تضمين quantity إذا تم إرساله
+    const updateData = { title, price, category, image };
+    if (quantity !== undefined) {
+      updateData.quantity = quantity;
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProduct)
+      return res.status(404).json({ message: "المنتج غير موجود" });
+
+    res.json(updatedProduct);
   } catch (err) {
-    res.status(500).json({ error: "Server error: " + err.message });
+    res.status(500).json({ error: err.message });
   }
 });
