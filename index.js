@@ -41,7 +41,7 @@ app.get("/", (req, res) => {
 });
 
 // ==================== 👤 إدارة المستخدمين ====================
-// 📌 استرجاع جميع المستخدمين بدون كلمات المرور
+// استرجاع جميع المستخدمين بدون كلمات المرور
 app.get("/getUsers", async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -51,7 +51,7 @@ app.get("/getUsers", async (req, res) => {
   }
 });
 
-// 📌 استرجاع مستخدم واحد عبر ID
+// استرجاع مستخدم واحد عبر ID
 app.get("/getUsers/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -62,8 +62,7 @@ app.get("/getUsers/:id", async (req, res) => {
   }
 });
 
-// 📌 إضافة مستخدم جديد
-// 📌 إضافة مستخدم جديد
+// إضافة مستخدم جديد
 app.post("/postUser", async (req, res) => {
   try {
     const { username, password, email, position } = req.body; // إضافة position
@@ -85,7 +84,7 @@ app.post("/postUser", async (req, res) => {
   }
 });
 
-// 📌 تحديث بيانات المستخدم
+// تحديث بيانات المستخدم
 app.patch("/updateUser/:id", async (req, res) => {
   try {
     const { email, username, password, oldPassword, position } = req.body;
@@ -100,11 +99,11 @@ app.patch("/updateUser/:id", async (req, res) => {
           .status(400)
           .json({ message: "يجب تقديم كلمة المرور القديمة" });
       }
-      // إيجاد المستخدم مع جلب حقل كلمة المرور (يفترض أن كلمة المرور مخفية بشكل افتراضي)
+      // إيجاد المستخدم مع جلب حقل كلمة المرور
       const user = await User.findById(req.params.id).select("+password");
       if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
 
-      // نفترض وجود دالة على نموذج المستخدم للمقارنة بين كلمات المرور
+      // نفترض وجود دالة comparePassword في نموذج المستخدم
       const isMatch = await user.comparePassword(oldPassword);
       if (!isMatch)
         return res
@@ -131,7 +130,7 @@ app.patch("/updateUser/:id", async (req, res) => {
   }
 });
 
-// 📌 حذف مستخدم
+// حذف مستخدم
 app.delete("/deleteUser/:id", async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
@@ -144,8 +143,8 @@ app.delete("/deleteUser/:id", async (req, res) => {
 });
 
 // ==================== 🛒 إدارة المنتجات ====================
-// 📌 استرجاع جميع المنتجات
-app.get("/getProducts", async (res) => {
+// استرجاع جميع المنتجات
+app.get("/getProducts", async (req, res) => {
   try {
     const products = await Product.find();
     res.status(200).json(products);
@@ -154,7 +153,7 @@ app.get("/getProducts", async (res) => {
   }
 });
 
-// 📌 استرجاع منتج واحد عبر ID
+// استرجاع منتج واحد عبر ID
 app.get("/getProducts/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -166,12 +165,12 @@ app.get("/getProducts/:id", async (req, res) => {
   }
 });
 
-// 📌 إضافة منتج جديد
+// إضافة منتج جديد
 app.post("/postProduct", async (req, res) => {
   try {
     const { title, price, category, image, quantity } = req.body;
 
-    // التحقق من الحقول الأساسية، ولا نقوم بالتحقق من quantity هنا لأنه سيتم تعيينها افتراضيًا في حالة عدم إرسالها
+    // التحقق من الحقول الأساسية
     if (!title || !price || !category || !image) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -210,37 +209,7 @@ app.post("/postProduct", async (req, res) => {
   }
 });
 
-// 📌 تحديث منتج
-app.patch("/updateProduct/:id", async (req, res) => {
-  try {
-    const { title, price, category, image } = req.body;
-
-    if (Object.keys(req.body).length === 0) {
-      return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
-    }
-
-    if (price && (typeof price !== "number" || price <= 0)) {
-      return res
-        .status(400)
-        .json({ message: "يجب أن يكون السعر رقمًا موجبًا" });
-    }
-
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      { title, price, category, image },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedProduct)
-      return res.status(404).json({ message: "المنتج غير موجود" });
-
-    res.json(updatedProduct);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 📌 حذف منتج
+// تحديث منتج
 app.patch("/updateProduct/:id", async (req, res) => {
   try {
     const { title, price, category, image, quantity } = req.body;
@@ -255,7 +224,6 @@ app.patch("/updateProduct/:id", async (req, res) => {
         .json({ message: "يجب أن يكون السعر رقمًا موجبًا" });
     }
 
-    // بناء كائن البيانات المحدثة مع تضمين quantity إذا تم إرساله
     const updateData = { title, price, category, image };
     if (quantity !== undefined) {
       updateData.quantity = quantity;
@@ -273,5 +241,17 @@ app.patch("/updateProduct/:id", async (req, res) => {
     res.json(updatedProduct);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// حذف منتج
+app.delete("/deleteProduct/:id", async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    res.status(200).json({ message: "Product deleted successfully", product });
+  } catch (err) {
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
