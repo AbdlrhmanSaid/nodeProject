@@ -63,9 +63,10 @@ app.get("/getUsers/:id", async (req, res) => {
 });
 
 // 📌 إضافة مستخدم جديد
+// 📌 إضافة مستخدم جديد
 app.post("/postUser", async (req, res) => {
   try {
-    const { username, password, email } = req.body;
+    const { username, password, email, position } = req.body; // إضافة position
     if (!username || !password || !email) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -75,7 +76,8 @@ app.post("/postUser", async (req, res) => {
       return res.status(400).json({ message: "Email is already registered" });
     }
 
-    const user = new User({ username, password, email });
+    // إنشاء المستخدم مع تضمين حقل position
+    const user = new User({ username, password, email, position });
     await user.save();
     res.status(201).json({ message: "User added successfully", user });
   } catch (err) {
@@ -86,23 +88,23 @@ app.post("/postUser", async (req, res) => {
 // 📌 تحديث بيانات المستخدم
 app.patch("/updateUser/:id", async (req, res) => {
   try {
-    const { email, username, password, oldPassword } = req.body;
+    const { email, username, password, oldPassword, position } = req.body;
     if (Object.keys(req.body).length === 0) {
       return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
     }
 
-    // إذا كان المستخدم يحاول تغيير كلمة المرور، يجب التأكد من تقديم كلمة المرور القديمة\n
+    // إذا كان المستخدم يحاول تغيير كلمة المرور، يجب التأكد من تقديم كلمة المرور القديمة
     if (password) {
       if (!oldPassword) {
         return res
           .status(400)
           .json({ message: "يجب تقديم كلمة المرور القديمة" });
       }
-      // إيجاد المستخدم مع جلب حقل كلمة المرور (يفترض أن كلمة المرور مخفية بشكل افتراضي)\n
+      // إيجاد المستخدم مع جلب حقل كلمة المرور (يفترض أن كلمة المرور مخفية بشكل افتراضي)
       const user = await User.findById(req.params.id).select("+password");
       if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
 
-      // نفترض وجود دالة على نموذج المستخدم للمقارنة بين كلمات المرور\n
+      // نفترض وجود دالة على نموذج المستخدم للمقارنة بين كلمات المرور
       const isMatch = await user.comparePassword(oldPassword);
       if (!isMatch)
         return res
@@ -110,7 +112,9 @@ app.patch("/updateUser/:id", async (req, res) => {
           .json({ message: "كلمة المرور القديمة غير صحيحة" });
     }
 
+    // بناء بيانات التحديث مع تضمين حقل position إذا تم إرساله
     const updateData = { email, username };
+    if (position !== undefined) updateData.position = position;
     if (password) updateData.password = password;
 
     const updatedUser = await User.findByIdAndUpdate(
