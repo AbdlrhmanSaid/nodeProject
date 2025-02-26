@@ -2,8 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
 
-// استيراد الموديلات
 const User = require("./model/Users");
 const Product = require("./model/Products");
 
@@ -18,7 +18,6 @@ app.use(
   })
 );
 
-// بيانات الاتصال بقاعدة البيانات
 const db_user = "Abdelrhman";
 const db_password = encodeURIComponent("#12Bode34#");
 const db_name = "university";
@@ -41,6 +40,7 @@ app.get("/", (req, res) => {
 });
 
 // ==================== 👤 إدارة المستخدمين ====================
+
 // استرجاع جميع المستخدمين بدون كلمات المرور
 app.get("/getUsers", async (req, res) => {
   try {
@@ -51,7 +51,7 @@ app.get("/getUsers", async (req, res) => {
   }
 });
 
-// استرجاع مستخدم واحد عبر ID
+// استرجاع مستخدم واحد عبر ID بدون كلمة المرور
 app.get("/getUsers/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -62,10 +62,10 @@ app.get("/getUsers/:id", async (req, res) => {
   }
 });
 
-// إضافة مستخدم جديد
+// إضافة مستخدم جديد مع تشفير كلمة المرور
 app.post("/postUser", async (req, res) => {
   try {
-    const { username, password, email, position } = req.body; // إضافة position
+    const { username, password, email, position } = req.body;
     if (!username || !password || !email) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -75,8 +75,17 @@ app.post("/postUser", async (req, res) => {
       return res.status(400).json({ message: "Email is already registered" });
     }
 
-    // إنشاء المستخدم مع تضمين حقل position
-    const user = new User({ username, password, email, position });
+    // تشفير كلمة المرور قبل الحفظ
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // إنشاء المستخدم مع تضمين حقل position وكلمة المرور المشفرة
+    const user = new User({
+      username,
+      password: hashedPassword,
+      email,
+      position,
+    });
     await user.save();
     res.status(201).json({ message: "User added successfully", user });
   } catch (err) {
@@ -84,7 +93,7 @@ app.post("/postUser", async (req, res) => {
   }
 });
 
-// تحديث بيانات المستخدم
+// تحديث بيانات المستخدم مع تشفير كلمة المرور الجديدة عند التحديث
 app.patch("/updateUser/:id", async (req, res) => {
   try {
     const { email, username, password, oldPassword, position } = req.body;
@@ -92,14 +101,14 @@ app.patch("/updateUser/:id", async (req, res) => {
       return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
     }
 
-    // إذا كان المستخدم يحاول تغيير كلمة المرور، يجب التأكد من تقديم كلمة المرور القديمة
+    // إذا كان المستخدم يحاول تغيير كلمة المرور، يجب تقديم كلمة المرور القديمة للتحقق
     if (password) {
       if (!oldPassword) {
         return res
           .status(400)
           .json({ message: "يجب تقديم كلمة المرور القديمة" });
       }
-      // إيجاد المستخدم مع جلب حقل كلمة المرور
+      // إيجاد المستخدم مع جلب حقل كلمة المرور (مطلوب لأننا قمنا باستبعاده افتراضياً)
       const user = await User.findById(req.params.id).select("+password");
       if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
 
@@ -111,10 +120,13 @@ app.patch("/updateUser/:id", async (req, res) => {
           .json({ message: "كلمة المرور القديمة غير صحيحة" });
     }
 
-    // بناء بيانات التحديث مع تضمين حقل position إذا تم إرساله
+    // بناء بيانات التحديث مع تضمين الحقل position إذا تم إرساله
     const updateData = { email, username };
     if (position !== undefined) updateData.position = position;
-    if (password) updateData.password = password;
+    if (password) {
+      const saltRounds = 10;
+      updateData.password = await bcrypt.hash(password, saltRounds);
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
@@ -143,6 +155,7 @@ app.delete("/deleteUser/:id", async (req, res) => {
 });
 
 // ==================== 🛒 إدارة المنتجات ====================
+
 // استرجاع جميع المنتجات
 app.get("/getProducts", async (req, res) => {
   try {
