@@ -75,18 +75,10 @@ app.post("/postUser", async (req, res) => {
       return res.status(400).json({ message: "Email is already registered" });
     }
 
-    // تشفير كلمة المرور قبل الحفظ
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // إنشاء المستخدم مع تضمين حقل position وكلمة المرور المشفرة
-    const user = new User({
-      username,
-      password: hashedPassword,
-      email,
-      position,
-    });
+    // يتم التشفير تلقائيًا في userSchema
+    const user = new User({ username, password, email, position });
     await user.save();
+
     res.status(201).json({ message: "User added successfully", user });
   } catch (err) {
     res.status(500).json({ error: "Server error: " + err.message });
@@ -101,42 +93,31 @@ app.patch("/updateUser/:id", async (req, res) => {
       return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
     }
 
-    // إذا كان المستخدم يحاول تغيير كلمة المرور، يجب تقديم كلمة المرور القديمة للتحقق
+    const user = await User.findById(req.params.id).select("+password");
+    if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
+
+    // إذا كان هناك طلب لتغيير كلمة المرور، تحقق من صحة القديمة
     if (password) {
       if (!oldPassword) {
         return res
           .status(400)
           .json({ message: "يجب تقديم كلمة المرور القديمة" });
       }
-      // إيجاد المستخدم مع جلب حقل كلمة المرور (مطلوب لأننا قمنا باستبعاده افتراضياً)
-      const user = await User.findById(req.params.id).select("+password");
-      if (!user) return res.status(404).json({ message: "المستخدم غير موجود" });
-
-      // نفترض وجود دالة comparePassword في نموذج المستخدم
       const isMatch = await user.comparePassword(oldPassword);
-      if (!isMatch)
+      if (!isMatch) {
         return res
           .status(400)
           .json({ message: "كلمة المرور القديمة غير صحيحة" });
+      }
+      user.password = password; // سيتم تشفيرها تلقائيًا في userSchema
     }
 
-    // بناء بيانات التحديث مع تضمين الحقل position إذا تم إرساله
-    const updateData = { email, username };
-    if (position !== undefined) updateData.position = position;
-    if (password) {
-      const saltRounds = 10;
-      updateData.password = await bcrypt.hash(password, saltRounds);
-    }
+    if (email) user.email = email;
+    if (username) user.username = username;
+    if (position !== undefined) user.position = position;
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
-    if (!updatedUser)
-      return res.status(404).json({ message: "المستخدم غير موجود" });
-
-    res.json(updatedUser);
+    await user.save();
+    res.json({ message: "تم تحديث المستخدم بنجاح", user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
