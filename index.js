@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 
 const User = require("./model/Users");
 const Product = require("./model/Products");
+const Message = require("./model/Messages");
 
 dotenv.config();
 
@@ -267,5 +268,29 @@ app.delete("/deleteProduct/:id", async (req, res) => {
     res.status(200).json({ message: "Product deleted successfully", product });
   } catch (err) {
     res.status(500).json({ error: "Server error: " + err.message });
+  }
+});
+
+// ====================  إدارة الرسائل ====================
+
+// إنشاء رسالة جديدة
+app.post("/messages", async (req, res) => {
+  try {
+    const { user, action, info } = req.body;
+    const message = new Message({ user, action, info });
+    await message.save();
+    res.status(201).json({ success: true, message });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// جلب جميع الرسائل
+app.get("/messages", async (req, res) => {
+  try {
+    const messages = await Message.find();
+    res.json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
