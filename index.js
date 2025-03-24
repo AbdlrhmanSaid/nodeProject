@@ -294,3 +294,49 @@ app.get("/messages", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// مسح جميع الرسائل
+app.delete("/messages", async (req, res) => {
+  try {
+    await Message.deleteMany();
+    res.json({ success: true, message: "تم مسح جميع الرسائل" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete("/messages/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Message.findByIdAndDelete(id);
+    res.json({ success: true, message: "تم مسح الرسالة بنجاح" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// مسح الرسائل التي يكون user !== "stand"
+app.delete("/messages/not-stand", async (req, res) => {
+  try {
+    await Message.deleteMany({ user: { $ne: "stand" } });
+    res.json({
+      success: true,
+      message: "تم مسح جميع الرسائل التي يكون user !== 'stand'",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// مسح الرسائل التي يكون user === "stand"
+app.delete("/messages/only-stand", async (req, res) => {
+  try {
+    await Message.deleteMany({ user: "stand" });
+    res.json({
+      success: true,
+      message: "تم مسح جميع الرسائل التي يكون user === 'stand'",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
