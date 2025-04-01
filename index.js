@@ -186,7 +186,7 @@ app.post("/postProduct", async (req, res) => {
     const { title, price, category, image, quantity } = req.body;
 
     // التحقق من الحقول الأساسية
-    if (!title || !price || !category || !image) {
+    if (!title || !price || !category ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
