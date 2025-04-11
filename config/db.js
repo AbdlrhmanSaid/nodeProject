@@ -10,7 +10,7 @@ const connectDB = async () => {
 
     // إعداد رابط الاتصال بـ MongoDB بدون الخيارات deprecated
     const conn = await mongoose.connect(
-      `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority`
+      `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority&authSource=admin`
     );
 
     // إذا تم الاتصال بنجاح
