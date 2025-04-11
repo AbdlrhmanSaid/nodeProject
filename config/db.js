@@ -5,13 +5,12 @@ const connectDB = async () => {
   try {
     // قراءة المتغيرات من ملف .env
     const db_user = process.env.DB_USER;
-    const db_password = encodeURIComponent(process.env.DB_PASSWORD); // ترميز كلمة المرور بشكل صحيح
+    const db_password = process.env.DB_PASSWORD; // استخدم القيمة كما هي دون ترميز إضافي
     const db_name = process.env.DB_NAME;
 
-    // إعداد رابط الاتصال بـ MongoDB
+    // إعداد رابط الاتصال بـ MongoDB بدون الخيارات deprecated
     const conn = await mongoose.connect(
-      `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority`,
-      { useNewUrlParser: true, useUnifiedTopology: true } // إضافة خيارات الاتصال الحديثة
+      `mongodb+srv://${db_user}:${db_password}@cluster0.9fimd.mongodb.net/${db_name}?retryWrites=true&w=majority`
     );
 
     // إذا تم الاتصال بنجاح
@@ -23,4 +22,5 @@ const connectDB = async () => {
   }
 };
 
+// تصدير الدالة
 module.exports = connectDB;
