@@ -1,4 +1,5 @@
 const Product = require("../models/Products");
+
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Public
@@ -7,7 +8,7 @@ exports.getProducts = async (req, res) => {
     const products = await Product.find();
     res.status(200).json(products);
   } catch (err) {
-    res.status(500).json({ error: "Server error: " + err.message });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -17,17 +18,14 @@ exports.getProducts = async (req, res) => {
 exports.getProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) return res.status(404).json({ message: "Not found" });
 
     res.status(200).json(product);
   } catch (err) {
-    res.status(500).json({ error: "Server error: " + err.message });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
-// @desc    Create new product
-// @route   POST /api/products
-// @access  Public
 // @desc    Create new product
 // @route   POST /api/products
 // @access  Public
@@ -35,31 +33,24 @@ exports.createProduct = async (req, res) => {
   try {
     const { title, price, category, image, quantity } = req.body;
 
-    // تحقق من الحقول المطلوبة فقط
     if (!title || typeof title !== "string") {
-      return res
-        .status(400)
-        .json({ message: "العنوان مطلوب ويجب أن يكون نصًا" });
+      return res.status(400).json({ message: "Title required" });
     }
 
     if (price === undefined || typeof price !== "number" || price <= 0) {
-      return res
-        .status(400)
-        .json({ message: "السعر مطلوب ويجب أن ي كون رقمًا موجبًا" });
+      return res.status(400).json({ message: "Invalid price" });
     }
 
-    // تحقق مما إذا كان المنتج موجود مسبقًا
     const existingProduct = await Product.findOne({ title });
     if (existingProduct) {
       existingProduct.quantity = (existingProduct.quantity || 0) + 1;
       await existingProduct.save();
       return res.status(200).json({
-        message: "المنتج موجود مسبقًا، تم زيادة  .",
+        message: "Qty increased",
         product: existingProduct,
       });
     }
 
-    // إنشاء منتج جديد مع القيم الاختيارية إن وجدت
     const product = new Product({
       title,
       price,
@@ -69,9 +60,9 @@ exports.createProduct = async (req, res) => {
     });
 
     await product.save();
-    res.status(201).json({ message: "تمت إضافة المنتج بنجاح", product });
+    res.status(201).json({ message: "Product added", product });
   } catch (err) {
-    res.status(500).json({ error: "خطأ في السيرفر: " + err.message });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -83,13 +74,11 @@ exports.updateProduct = async (req, res) => {
     const { title, price, category, image, quantity } = req.body;
 
     if (Object.keys(req.body).length === 0) {
-      return res.status(400).json({ message: "يجب إرسال بيانات للتحديث" });
+      return res.status(400).json({ message: "No data sent" });
     }
 
     if (price && (typeof price !== "number" || price <= 0)) {
-      return res
-        .status(400)
-        .json({ message: "يجب أن يكون السعر رقمًا موجبًا" });
+      return res.status(400).json({ message: "Invalid price" });
     }
 
     const updateData = { title, price, category, image };
@@ -103,12 +92,11 @@ exports.updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!updatedProduct)
-      return res.status(404).json({ message: "المنتج غير موجود" });
+    if (!updatedProduct) return res.status(404).json({ message: "Not found" });
 
     res.json(updatedProduct);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -118,10 +106,10 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) return res.status(404).json({ message: "Not found" });
 
-    res.status(200).json({ message: "Product deleted successfully", product });
+    res.status(200).json({ message: "Deleted", product });
   } catch (err) {
-    res.status(500).json({ error: "Server error: " + err.message });
+    res.status(500).json({ error: "Server error" });
   }
 };
