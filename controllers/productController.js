@@ -28,42 +28,50 @@ exports.getProduct = async (req, res) => {
 // @desc    Create new product
 // @route   POST /api/products
 // @access  Public
+// @desc    Create new product
+// @route   POST /api/products
+// @access  Public
 exports.createProduct = async (req, res) => {
   try {
     const { title, price, category, image, quantity } = req.body;
 
-    if (!title || !price || !category || !image) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    if (typeof price !== "number" || price <= 0) {
+    // تحقق من الحقول المطلوبة فقط
+    if (!title || typeof title !== "string") {
       return res
         .status(400)
-        .json({ message: "Price must be a positive number" });
+        .json({ message: "العنوان مطلوب ويجب أن يكون نصًا" });
     }
 
+    if (price === undefined || typeof price !== "number" || price <= 0) {
+      return res
+        .status(400)
+        .json({ message: "السعر مطلوب ويجب أن يكون رقمًا موجبًا" });
+    }
+
+    // تحقق مما إذا كان المنتج موجود مسبقًا
     const existingProduct = await Product.findOne({ title });
     if (existingProduct) {
       existingProduct.quantity = (existingProduct.quantity || 0) + 1;
       await existingProduct.save();
       return res.status(200).json({
-        message: "Product already exists. Quantity increased.",
+        message: "المنتج موجود مسبقًا، تم زيادة الكمية.",
         product: existingProduct,
       });
     }
 
-    const newQuantity = quantity !== undefined ? quantity : 1;
+    // إنشاء منتج جديد مع القيم الاختيارية إن وجدت
     const product = new Product({
       title,
       price,
-      category,
-      image,
-      quantity: newQuantity,
+      ...(category && { category }),
+      ...(image && { image }),
+      quantity: quantity !== undefined ? quantity : 1,
     });
+
     await product.save();
-    res.status(201).json({ message: "Product added successfully", product });
+    res.status(201).json({ message: "تمت إضافة المنتج بنجاح", product });
   } catch (err) {
-    res.status(500).json({ error: "Server error: " + err.message });
+    res.status(500).json({ error: "خطأ في السيرفر: " + err.message });
   }
 };
 
