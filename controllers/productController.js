@@ -45,7 +45,7 @@ exports.createProduct = async (req, res) => {
     if (price === undefined || typeof price !== "number" || price <= 0) {
       return res
         .status(400)
-        .json({ message: "السعر مطلوب ويجب أن يكون رقمًا موجبًا" });
+        .json({ message: "السعر مطلوب ويجب أن ي كون رقمًا موجبًا" });
     }
 
     // تحقق مما إذا كان المنتج موجود مسبقًا
@@ -54,7 +54,7 @@ exports.createProduct = async (req, res) => {
       existingProduct.quantity = (existingProduct.quantity || 0) + 1;
       await existingProduct.save();
       return res.status(200).json({
-        message: "المنتج موجود مسبقًا، تم زيادة الكمية.",
+        message: "المنتج موجود مسبقًا، تم زيادة  .",
         product: existingProduct,
       });
     }
