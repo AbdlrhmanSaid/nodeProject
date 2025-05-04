@@ -25,6 +25,7 @@ app.use(
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/messages", require("./routes/messageRoutes"));
+app.use("/api/stands", require("./routes/standRoutes"));
 
 // Home route
 app.get("/", (req, res) => {
