@@ -1,10 +1,17 @@
 const express = require("express");
 const router = express.Router();
-const { updateStand, createStand } = require("../controllers/standController");
+const {
+  getAllStands,
+  getStandById,
+  createStand,
+  updateStand,
+  deleteStand,
+} = require("../controllers/standController");
 
-// POST /api/stands
+router.get("/", getAllStands);
+router.get("/:id", getStandById);
 router.post("/", createStand);
-// PATCH /api/stands/:id
 router.patch("/:id", updateStand);
+router.delete("/:id", deleteStand);
 
 module.exports = router;
