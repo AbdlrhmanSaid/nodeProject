@@ -26,12 +26,13 @@ exports.getProduct = async (req, res) => {
   }
 };
 
-// @desc    Create new product
+// @desc    Create or update product quantity
 // @route   POST /api/products
 // @access  Public
 exports.createProduct = async (req, res) => {
   try {
-    const { title, price, category, image, quantity } = req.body;
+    const { title, price, category, image } = req.body;
+    let quantity = req.body.quantity;
 
     if (!title || typeof title !== "string") {
       return res.status(400).json({ message: "Title required" });
@@ -41,13 +42,40 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Invalid price" });
     }
 
+    // Default quantity to 1 if not provided
+    if (quantity === undefined) {
+      quantity = 1;
+    }
+
+    if (typeof quantity !== "number") {
+      return res.status(400).json({ message: "Quantity must be a number" });
+    }
+
     const existingProduct = await Product.findOne({ title });
+
     if (existingProduct) {
-      existingProduct.quantity = (existingProduct.quantity || 0) + 1;
+      const updatedQuantity = (existingProduct.quantity || 0) + quantity;
+
+      // Check for negative result
+      if (updatedQuantity < 0) {
+        return res.status(400).json({
+          message: "Invalid quantity update: result would be negative",
+          currentQuantity: existingProduct.quantity,
+        });
+      }
+
+      existingProduct.quantity = updatedQuantity;
       await existingProduct.save();
       return res.status(200).json({
-        message: "Qty increased",
+        message: "Quantity updated",
         product: existingProduct,
+      });
+    }
+
+    // For new product
+    if (quantity < 0) {
+      return res.status(400).json({
+        message: "Invalid quantity: must be 0 or positive",
       });
     }
 
@@ -56,7 +84,7 @@ exports.createProduct = async (req, res) => {
       price,
       ...(category && { category }),
       ...(image && { image }),
-      quantity: quantity !== undefined ? quantity : 1,
+      quantity,
     });
 
     await product.save();
