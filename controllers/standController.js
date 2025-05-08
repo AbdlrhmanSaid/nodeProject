@@ -15,7 +15,7 @@ const getAllStands = async (req, res) => {
 const getStandById = async (req, res) => {
   const { id } = req.params;
   try {
-    const stand = await Stand.findOne({ standID: id });
+    const stand = await Stand.findById(id);
     if (!stand) return res.status(404).json({ message: "Stand not found" });
     res.status(200).json(stand);
   } catch (error) {
@@ -25,22 +25,13 @@ const getStandById = async (req, res) => {
 
 // Create stand
 const createStand = async (req, res) => {
-  const { standID, standName, isFull = false, isActive = true } = req.body;
-
+  const { standName, isFull = false, isActive = true } = req.body;
   try {
-    // Check if stand already exists
-    const existingStand = await Stand.findOne({ standID });
-    if (existingStand) {
-      return res.status(400).json({ message: "Stand already exists" });
-    }
-
     const newStand = await Stand.create({
-      standID,
       standName,
       isFull,
       isActive,
     });
-
     res.status(201).json({ message: "Stand created", stand: newStand });
   } catch (error) {
     res.status(500).json({ message: "Error creating stand", error });
@@ -52,20 +43,19 @@ const updateStand = async (req, res) => {
   const { id } = req.params;
   const {
     standName,
-    isFull, // optional manual override
+    isFull,
     isActive,
     maxCapacity,
     productSpacing,
     action,
-    productId, // This will be used to add or remove products
-    productIds, // This will be used to replace the whole list of productIds
+    productId,
+    productIds,
   } = req.body;
 
   try {
-    const stand = await Stand.findOne({ standID: id });
+    const stand = await Stand.findById(id);
     if (!stand) return res.status(404).json({ message: "Stand not found" });
 
-    // Update general fields
     if (standName !== undefined) stand.standName = standName;
     if (isActive !== undefined) stand.isActive = isActive;
     if (maxCapacity !== undefined) {
@@ -81,14 +71,13 @@ const updateStand = async (req, res) => {
       stand.productSpacing = productSpacing;
     }
 
-    // Manage productIds
     let updated = false;
 
     if (action === "add") {
       if (!productId)
         return res.status(400).json({ message: "Missing productId to add" });
       if (!stand.productIds.includes(productId)) {
-        stand.productIds.push(productId); // Add the new productId
+        stand.productIds.push(productId);
         updated = true;
       }
     } else if (action === "remove") {
@@ -102,18 +91,16 @@ const updateStand = async (req, res) => {
     } else if (action === "replace") {
       if (!Array.isArray(productIds))
         return res.status(400).json({ message: "productIds must be an array" });
-      stand.productIds = productIds; // Replace with a new array of productIds
+      stand.productIds = productIds;
       updated = true;
     }
 
-    // Update isFull based on product count vs maxCapacity
     if (updated || maxCapacity !== undefined) {
       const currentCount = stand.productIds.length;
       stand.isFull =
         stand.maxCapacity !== undefined && currentCount >= stand.maxCapacity;
     }
 
-    // Optional override if user sent isFull directly
     if (isFull !== undefined) stand.isFull = isFull;
 
     await stand.save();
@@ -134,7 +121,7 @@ const deleteStand = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deleted = await Stand.findOneAndDelete({ standID: id });
+    const deleted = await Stand.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ message: "Stand not found" });
     res.status(200).json({ message: "Stand deleted" });
   } catch (error) {

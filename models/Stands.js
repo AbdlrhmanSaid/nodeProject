@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const standSchema = new Schema({
-  standID: { type: String, required: true, unique: true },
   standName: { type: String, required: true },
   isFull: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
