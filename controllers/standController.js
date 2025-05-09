@@ -25,12 +25,19 @@ const getStandById = async (req, res) => {
 
 // Create stand
 const createStand = async (req, res) => {
-  const { standName, isFull = false, isActive = true } = req.body;
+  const {
+    standName,
+    isFull = false,
+    isActive = true,
+    productIds = [],
+  } = req.body;
   try {
     const newStand = await Stand.create({
       standName,
       isFull,
       isActive,
+      productIds,
+      currentProductCount: productIds.length, // ✅ يتم تعيينه بناءً على عدد المنتجات المضافة
     });
     res.status(201).json({ message: "Stand created", stand: newStand });
   } catch (error) {
@@ -95,8 +102,10 @@ const updateStand = async (req, res) => {
       updated = true;
     }
 
+    const currentCount = stand.productIds.length;
+    stand.currentProductCount = currentCount;
+
     if (updated || maxCapacity !== undefined) {
-      const currentCount = stand.productIds.length;
       stand.isFull =
         stand.maxCapacity !== undefined && currentCount >= stand.maxCapacity;
     }
