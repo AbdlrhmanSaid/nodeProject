@@ -54,17 +54,20 @@ const updateStand = async (req, res) => {
     isActive,
     maxCapacity,
     productSpacing,
+    currentProductCount,
+    productIds,
     action,
     productId,
-    productIds,
   } = req.body;
 
   try {
     const stand = await Stand.findById(id);
     if (!stand) return res.status(404).json({ message: "Stand not found" });
 
+    // ✅ تحديث مباشر للحقول البسيطة
     if (standName !== undefined) stand.standName = standName;
     if (isActive !== undefined) stand.isActive = isActive;
+    if (isFull !== undefined) stand.isFull = isFull;
     if (maxCapacity !== undefined) {
       if (maxCapacity < 1)
         return res.status(400).json({ message: "maxCapacity must be >= 1" });
@@ -77,9 +80,16 @@ const updateStand = async (req, res) => {
           .json({ message: "productSpacing can't be negative" });
       stand.productSpacing = productSpacing;
     }
+    if (currentProductCount !== undefined) {
+      if (currentProductCount < 0)
+        return res
+          .status(400)
+          .json({ message: "currentProductCount can't be negative" });
+      stand.currentProductCount = currentProductCount;
+    }
 
+    // ✅ تعديل productIds (add/remove/replace)
     let updated = false;
-
     if (action === "add") {
       if (!productId)
         return res.status(400).json({ message: "Missing productId to add" });
@@ -102,22 +112,25 @@ const updateStand = async (req, res) => {
       updated = true;
     }
 
-    const currentCount = stand.productIds.length;
-    stand.currentProductCount = currentCount;
-
-    if (updated || maxCapacity !== undefined) {
-      stand.isFull =
-        stand.maxCapacity !== undefined && currentCount >= stand.maxCapacity;
+    // ✅ إذا تم تعديل المنتجات نحسب currentProductCount تلقائياً (ولو ما تمش تحديده يدوي)
+    if (updated && currentProductCount === undefined) {
+      stand.currentProductCount = stand.productIds.length;
     }
 
-    if (isFull !== undefined) stand.isFull = isFull;
+    // ✅ تحديث isFull تلقائي إذا maxCapacity أو عدد المنتجات تغيّروا
+    if (
+      (updated || maxCapacity !== undefined) &&
+      currentProductCount === undefined
+    ) {
+      const count = stand.productIds.length;
+      stand.isFull =
+        stand.maxCapacity !== undefined && count >= stand.maxCapacity;
+    }
 
     await stand.save();
 
     res.status(200).json({
       message: "Stand updated",
-      isFullStatus: stand.isFull,
-      currentCount: stand.productIds.length,
       stand,
     });
   } catch (error) {
